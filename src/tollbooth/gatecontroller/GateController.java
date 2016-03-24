@@ -21,13 +21,13 @@ import tollbooth.TollboothException;
 public interface GateController
 {
 	/**
-	 * Open the gate
+	 * Open the gate.
 	 * @throws TollboothException
 	 */
 	void open() throws TollboothException;
 	
 	/**
-	 * Close the gate
+	 * Close the gate.
 	 * @throws TollboothException
 	 */
 	void close() throws TollboothException;
@@ -40,8 +40,10 @@ public interface GateController
 	
 	
 	/**
+	 * Checks if the gate is open.
 	 * @return true if the gate is in the open state.
 	 * @throws TollboothException
 	 */
 	boolean isOpen() throws TollboothException;
+
 }

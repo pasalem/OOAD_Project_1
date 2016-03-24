@@ -6,6 +6,7 @@
  * http://www.eclipse.org/legal/epl-v10.html Copyright ©2016 Gary F. Pollice
  *******************************************************************************/
 
+ 
 package tollbooth;
 
 /**
@@ -20,8 +21,8 @@ public class LogMessage
 	private final Throwable cause;
 
 	/**
-	 * Create a LogMessage object with just a message and no cause.
-	 * @param message the descriptive message
+	 * Create a LogMessage object with a message and no cause.
+	 * @param message - the descriptive message
 	 */
 	public LogMessage(String message)
 	{
@@ -30,8 +31,8 @@ public class LogMessage
 
 	/**
 	 * Create a LogMessage object with a message and a cause.
-	 * @param message the descriptive message
-	 * @param cause the Throwable object, usually an Exception that was the cause for the message
+	 * @param message - the descriptive message in the log
+	 * @param cause - the Throwable object, an Exception that was the cause for the message
 	 */
 	public LogMessage(String message, Throwable cause)
 	{
@@ -40,6 +41,7 @@ public class LogMessage
 	}
 	
 	/**
+	 * Checks if the LogMessage has a cause.
 	 * @return true if the LogMessage has a cause
 	 */
 	public boolean hasCause()
@@ -48,6 +50,7 @@ public class LogMessage
 	}
 
 	/**
+	 * Gets the message from the log.
 	 * @return the message
 	 */
 	public String getMessage()
@@ -56,6 +59,7 @@ public class LogMessage
 	}
 
 	/**
+	 * Gets the cause of the thrown exception.
 	 * @return the cause
 	 */
 	public Throwable getCause()

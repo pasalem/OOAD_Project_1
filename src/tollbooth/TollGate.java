@@ -22,15 +22,29 @@ public class TollGate
 {
 	private final GateController controller;
 	private final SimpleLogger logger;
+	private int openCount;
+	private int closeCount;
+	private final int maxFailures;
+	private boolean malfunctioningMode;
 	
 	/**
-	 * Constructor that takes the actual gate controller and the logger.
+	 * Constructor that takes the gate controller and the logger.
 	 * @param controller the GateController object.
 	 * @param logger the SimpleLogger object.
 	 */
 	public TollGate(GateController controller, SimpleLogger logger) {
 		this.controller = controller;
 		this.logger = logger;
+		openCount = 0;
+		closeCount = 0;
+		maxFailures = 3;
+		malfunctioningMode = false;
+	}
+	
+	// Enum of all possible requests to a TollGate state: open(), close(), and reset()
+	public enum Request
+	{
+		OPEN, CLOSE, RESET
 	}
 	
 	/**
@@ -39,51 +53,23 @@ public class TollGate
 	 */
 	public void open() throws TollboothException
 	{
-		controller.open();
-		
-		//If there is a malfunction
-		if (malfunction)
-			// Log the malfunction
-			TollboothLogger.accept();
-			// Retry N times to open
-			controller.open();
-			controller.open();
-			controller.open();
-		// If still malfunctioning, set the gate to refuse open/close requests
-		if still not responding
-			set gateStatus to locked
-		// If the gate is set to not accept requests, log it and do nothing
-		if gateStatus == locked;
-			TollboothLogger.accept();
-		// Throw a TollboothException after logging if the gate can't be opened	
-		throw TollboothException;	
+		if(controller.isOpen()){
+			return;
+		}
+		this.requestDispatch(controller, Request.OPEN);
 			
 	}
 	
 	/**
-	 * Close the gate
+	 * Close the gate.
 	 * @throws TollboothException
 	 */
 	public void close() throws TollboothException
 	{
-		controller.close();
-		
-		//If there is a malfunction
-		if (malfunction)
-			// Log the malfunction
-			TollboothLogger.accept();
-			// Retry N times to close
-			controller.open();
-			controller.open();
-			controller.open();
-		// If still malfunctioning, set the gate to refuse open/close requests	
-		if still not responding
-				set gateStatus to locked
-		// If the gate is set to not accept requests, log it and do nothing
-		if gateStatus == locked;
-		TollboothLogger.accept();
-		// Throw a TollboothException after logging if the gate can't be closed
-		throw TollboothException	
+		if(!controller.isOpen()){
+			return;
+		}
+		this.requestDispatch(controller, Request.CLOSE);
 	}
 	
 	/**
@@ -93,9 +79,113 @@ public class TollGate
 	 */
 	public void reset() throws TollboothException
 	{
-		gateState = closed
-		// The statistics of the gate are not affected
-		do not affect stats
+		this.requestDispatch(controller, Request.RESET);
+	}
+	
+	/**
+	 * Runs a method from the controller API based on the Request passed to it.
+	 * @param action an enum specifying which Request to take
+	 * @throws TollboothException
+	 */
+	public void takeControllerRequest(Request action) throws TollboothException
+	{
+		switch(action)
+		{
+		case OPEN:
+			controller.open();
+			//Increment if no exception is thrown
+			openCount++;
+			break;
+		case CLOSE:
+			controller.close();
+			//Increment if no exception is thrown
+			closeCount++;
+			break;
+		case RESET:
+			controller.reset();
+			//Set malfunctioning mode back to false
+			malfunctioningMode = false;
+			break;
+		}
+	}
+
+	/**
+	 * Attempts to run the specified Request up to maxFailure times.
+	 * This method also produces log messages detailing the status 
+	 * of the Requests and whether or not they executed successfully.
+	 * @param controller - the GateController object
+	 * @param action - the Request to perform on the controller
+	 * @throws TollboothException
+	 */
+	public void requestDispatch(GateController controller, Request action) throws TollboothException
+	{
+		String logMessage;
+		String requestName = getRequestName(action);
+		
+		//Attempt to close until success or until maxFailures attempts
+		for(int attempt = 1; attempt <= maxFailures; attempt++)
+		{
+			try
+			{
+				//if in unresponsive mode, throw exception unless Request is reset
+				if(malfunctioningMode && action != Request.RESET)
+				{
+					logMessage = String.format("%s: will not respond", requestName);
+					throw new TollboothException(logMessage);
+				}
+				//make a call to the gate controller API
+				this.takeControllerRequest(action);
+				//Log successful Request taken
+				logMessage = String.format("%s: successful", requestName);
+				logger.accept(new LogMessage(logMessage));
+				return;
+			} 
+			catch(TollboothException e) 
+			{
+				//Throw the exception if in unresponsive mode
+				if(malfunctioningMode)
+				{
+					logger.accept(new LogMessage(e.getMessage(), e));
+					throw e;
+				}
+				//If this is the third try, set unrecoverable mode
+				if(attempt == maxFailures)
+				{
+					logMessage = String.format("%s: unrecoverable malfunction", requestName);
+					logger.accept(new LogMessage(logMessage));
+					malfunctioningMode = true;
+				//Otherwise just log another malfunction
+				} 
+				else
+				{
+					logMessage = String.format("%s: malfunction", requestName);
+					logger.accept(new LogMessage(logMessage));
+				}
+			}
+		}
+	}
+	
+	
+	/**
+	 * Given an Request enum type, returns the name of the Request. 
+	 * Used for generating detailed logging messages
+	 * @param action - the Request to perform
+	 * @return the name of the Request
+	 */
+	public static String getRequestName(Request action){
+		String RequestName = "Unknown";
+		switch(action){
+			case OPEN:
+				RequestName = "open";
+				break;
+			case CLOSE:
+				RequestName = "close";
+				break;
+			case RESET:
+				RequestName = "reset";
+				break;
+		}
+		return RequestName;
 	}
 	
 	/**
@@ -104,7 +194,13 @@ public class TollGate
 	 */
 	public boolean isOpen() throws TollboothException
 	{
-		return controller.isOpen();
+		if(malfunctioningMode)
+		{
+			throw new TollboothException("Gate is in unresponsive mode");
+		} else
+		{
+			return controller.isOpen();
+		}
 	}
 	
 	/**
@@ -113,7 +209,7 @@ public class TollGate
 	 */
 	public int getNumberOfOpens()
 	{
-		return numOfOpens;
+		return openCount;
 	}
 	
 	
@@ -123,6 +219,15 @@ public class TollGate
 	 */
 	public int getNumberOfCloses()
 	{
-		return numOfCloses;
+		return closeCount;
+	}
+	
+	/**
+	 * Gets whether or not the gate is in functioning mode
+	 * @return true if malfunctioning, false otherwise
+	 */
+	public boolean isMalfunctioningMode()
+	{
+		return malfunctioningMode;
 	}
 }

@@ -21,13 +21,13 @@ package tollbooth;
 public interface SimpleLogger
 {
 	/**
-	 * Accept a message and add it to the message queue
+	 * Accept a LogMessage and add it to the messageQueue.
 	 * @param message the LogMessage object to add to the queue
 	 */
 	void accept(LogMessage message);
 	
 	/**
-	 * Remove and return the next message from the message queue.
+	 * Remove and return the next message from the messageQueue.
 	 * @return the LogMessage object or null if there is no object in the queue
 	 */
 	LogMessage getNextMessage();

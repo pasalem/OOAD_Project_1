@@ -20,13 +20,16 @@ import tollbooth.TollboothException;
  */
 public class TestGateController implements GateController
 {
-	boolean isOpen;
+	private boolean isOpen;
+	private int scheduledFailureNum;
+	
 	/**
-	 * Constructor for the test gate controller.
+	 * Constructor for the TestGateController.
 	 */
 	public TestGateController()
 	{
 		isOpen = false;
+		scheduledFailureNum = 0;
 	}
 	
 	/*
@@ -35,6 +38,10 @@ public class TestGateController implements GateController
 	@Override
 	public void open() throws TollboothException
 	{
+		if(scheduledFailureNum > 0){
+			scheduledFailureNum--;
+			throw new TollboothException("Failed to open");
+		}
 		isOpen = true;
 	}
 
@@ -44,8 +51,11 @@ public class TestGateController implements GateController
 	@Override
 	public void close() throws TollboothException
 	{
-		// TODO Auto-generated method stub
-
+		if(scheduledFailureNum > 0){
+			scheduledFailureNum--;
+			throw new TollboothException("Failed to close");
+		}
+		isOpen = false;
 	}
 
 	/*
@@ -54,8 +64,12 @@ public class TestGateController implements GateController
 	@Override
 	public void reset() throws TollboothException
 	{
-		// TODO Auto-generated method stub
-
+		if(scheduledFailureNum > 0)
+		{
+			scheduledFailureNum--;
+			throw new TollboothException("Failed to reset");
+		}
+		isOpen = false;
 	}
 
 	/*
@@ -67,4 +81,21 @@ public class TestGateController implements GateController
 		return isOpen;
 	}
 
+	/**
+	 * Used for tests. It allows the value of isOpen to be set.
+	 * @param value to set for isOpen
+	 */
+	public void setIsOpen(boolean value)
+	{
+		isOpen = value;
+	}
+	
+	/**
+	 * Schedules the next N actions to cause TollboothExceptions.
+	 * @param count the number of failures to schedule
+	 */
+	public void scheduleNFailures(int count)
+	{
+		scheduledFailureNum = count;
+	}
 }
